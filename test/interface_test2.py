@@ -2,11 +2,12 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 1. Ρυθμίσεις Σελίδας
+# 1. Ρυθμίσεις Σελίδας (Προστέθηκε το expanded για να μην κρύβεται ποτέ το μενού)
 st.set_page_config(
     page_title="TEST MODE - Sailing Calendar",
     layout="wide",
-    page_icon="⛵"
+    page_icon="⛵",
+    initial_sidebar_state="expanded" 
 )
 
 # 2. Custom CSS — Flashscore Dark Theme
@@ -57,13 +58,6 @@ st.markdown("""
         border-radius: 3px;
         text-transform: uppercase;
         letter-spacing: 1px;
-    }
-
-    /* ── Tab-style filter bar ── */
-    .fs-filterbar {
-        display: flex;
-        gap: 4px;
-        margin-bottom: 16px;
     }
 
     /* ── Section Header (league-style) ── */
@@ -172,22 +166,25 @@ st.markdown("""
         border-right: 1px solid #2a2a45;
     }
 
-    section[data-testid="stSidebar"] .stSelectbox label,
-    section[data-testid="stSidebar"] .stTextInput label,
     section[data-testid="stSidebar"] p {
         color: #aaaacc !important;
         font-size: 0.82rem;
         text-transform: uppercase;
         letter-spacing: 0.8px;
     }
-
-    /* ── Streamlit widget overrides ── */
-    .stSelectbox > div > div {
-        background-color: #252540 !important;
-        border: 1px solid #3a3a60 !important;
-        color: #e0e0e0 !important;
+    
+    /* ── Customizing the Radio Buttons to look like a Menu ── */
+    .stRadio label {
+        cursor: pointer !important;
+        font-size: 1.05rem !important;
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
+    }
+    .stRadio > div {
+        gap: 8px;
     }
 
+    /* ── Streamlit widget overrides ── */
     .stTextInput > div > div > input {
         background-color: #252540 !important;
         border: 1px solid #3a3a60 !important;
@@ -212,14 +209,6 @@ st.markdown("""
 
     .stButton > button:hover {
         opacity: 0.85 !important;
-    }
-
-    /* ── Info / Success boxes ── */
-    .stAlert {
-        background-color: #1e1e35 !important;
-        border: 1px solid #3a3a60 !important;
-        color: #aaaacc !important;
-        border-radius: 4px !important;
     }
 
     /* ── Footer ── */
@@ -252,15 +241,31 @@ def get_mock_data():
 
 df = get_mock_data()
 
+# --- Υπολογισμοί για το μενού (Πόσοι αγώνες ανά Περιφέρεια) ---
+region_counts = df["Περιφέρεια"].value_counts().to_dict()
+total_races = len(df)
+region_options = ["Όλες"] + list(df["Περιφέρεια"].unique())
+
+def format_region(option):
+    """Αυτή η συνάρτηση προσθέτει το εικονίδιο και τον αριθμό δίπλα σε κάθε επιλογή"""
+    if option == "Όλες":
+        return f"📍 Όλες ({total_races})"
+    else:
+        return f"⚓ {option} ({region_counts.get(option, 0)})"
+
+
 # ── Sidebar ──────────────────────────────────────────────
 st.sidebar.markdown("## ⛵ SAILING CALENDAR")
 st.sidebar.markdown("---")
-st.sidebar.markdown("**ΦΙΛΤΡΑ**")
 
-selected_region = st.sidebar.selectbox(
-    "Περιφέρεια",
-    ["Όλες"] + list(df["Περιφέρεια"].unique())
+# Το νέο μενού με Radio Buttons
+selected_region = st.sidebar.radio(
+    "ΠΕΡΙΦΕΡΕΙΕΣ",
+    options=region_options,
+    format_func=format_region
 )
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 search_term = st.sidebar.text_input("Αναζήτηση αγώνα")
 
 st.sidebar.markdown("---")
@@ -319,7 +324,6 @@ with c4:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Race Table (Flashscore-style rows) ────────────────────
-# Group by region
 grouped = df_filtered.groupby("Περιφέρεια")
 
 if df_filtered.empty:
@@ -330,14 +334,12 @@ if df_filtered.empty:
     """, unsafe_allow_html=True)
 else:
     for region, group in grouped:
-        # Section header (like league header in Flashscore)
         st.markdown(f"""
             <div class="fs-section-header">
                 🌊 &nbsp; ΕΛΛΑΔΑ · {region.upper()}
             </div>
         """, unsafe_allow_html=True)
 
-        # Column labels
         st.markdown("""
             <div class="fs-row" style="font-size:0.72rem; color:#555577; text-transform:uppercase; letter-spacing:0.8px; padding:6px 14px; background:#14142a; cursor:default;">
                 <span style="min-width:70px;">Ημ/νία</span>
