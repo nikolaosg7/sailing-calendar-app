@@ -196,7 +196,16 @@ st.markdown("""
         text-align: center;
         letter-spacing: 0.8px;
     }
-    #MainMenu, footer, header { visibility: hidden; }
+    #MainMenu, footer { visibility: hidden; }
+    header { background: transparent !important; }
+    
+    /* Εμφάνιση και χρωματισμός του κουμπιού για το πλαϊνό μενού */
+    [data-testid="collapsedControl"] {
+        color: #ff6600 !important;
+        background-color: #1a1a2e !important;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -335,7 +344,35 @@ st.sidebar.markdown(
 
 # ── Filters ──────────────────────────────────────────────
 df_filtered = df.copy()
+
 if not df_filtered.empty:
+    # 1. Φίλτρο για μελλοντικούς αγώνες (Live Date Filter)
+    current_date = datetime.now().date()
+    valid_rows = []
+    
+    for idx, row in df_filtered.iterrows():
+        try:
+            # Αν η ημερομηνία έχει εύρος (π.χ. "25/07 έως 26/07/2026"), παίρνουμε την τελευταία ημερομηνία
+            date_part = row['Ημερομηνία'].split('έως')[-1].strip()
+            # Αν έχει παύλα (π.χ. "10-12/05/2026"), παίρνουμε το κομμάτι μετά την παύλα και κολλάμε τον μήνα/έτος
+            if '-' in date_part:
+                main_part = row['Ημερομηνία'].split('/')
+                month_year = f"/{main_part[1]}/{main_part[2]}"
+                date_part = date_part.split('-')[-1].strip() + month_year
+            
+            race_date = datetime.strptime(date_part, "%d/%m/%Y").date()
+            # Κρατάμε τον αγώνα μόνο αν είναι σήμερα ή στο μέλλον
+            if race_date >= current_date:
+                valid_rows.append(True)
+            else:
+                valid_rows.append(False)
+        except:
+            # Αν κάτι πάει στραβά με το format, κρατάμε τον αγώνα για να μην χαθούν δεδομένα
+            valid_rows.append(True)
+            
+    df_filtered = df_filtered[valid_rows]
+
+    # 2. Τα υπόλοιπα φίλτρα (Περιφέρεια & Αναζήτηση)
     if selected_region != "Όλες":
         df_filtered = df_filtered[df_filtered["Περιφέρεια"] == selected_region]
     if search_term:
