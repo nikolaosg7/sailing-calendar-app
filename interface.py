@@ -1,98 +1,378 @@
 import streamlit as st
 import pandas as pd
-import requests
-from bs4 import BeautifulSoup
-from icalendar import Calendar, Event
 from datetime import datetime
 
-# Ρυθμίσεις Σελίδας
-st.set_page_config(page_title="Sailing Calendar Pro", layout="wide", page_icon="⛵")
+# 1. Ρυθμίσεις Σελίδας (Προστέθηκε το expanded για να μην κρύβεται ποτέ το μενού)
+st.set_page_config(
+    page_title="TEST MODE - Sailing Calendar",
+    layout="wide",
+    page_icon="⛵",
+    initial_sidebar_state="expanded" 
+)
 
+# 2. Custom CSS — Flashscore Dark Theme
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
-    .stDataFrame { border: 1px solid #30363d; border-radius: 8px; }
+    @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
+
+    /* ── Global Reset ── */
+    html, body, [class*="css"] {
+        font-family: 'Barlow', sans-serif;
+        background-color: #1a1a2e;
+        color: #e0e0e0;
+    }
+
+    .main .block-container {
+        background-color: #1a1a2e;
+        padding: 1.5rem 2rem;
+    }
+
+    /* ── Header / Title ── */
+    .fs-header {
+        background: linear-gradient(90deg, #0d0d1a 0%, #1a1a2e 100%);
+        border-bottom: 2px solid #ff6600;
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        border-radius: 6px 6px 0 0;
+    }
+
+    .fs-header h1 {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .fs-badge {
+        background-color: #ff6600;
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* ── Section Header (league-style) ── */
+    .fs-section-header {
+        background: linear-gradient(90deg, #252540 0%, #1e1e35 100%);
+        border-left: 3px solid #ff6600;
+        padding: 8px 14px;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #ff9944;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 2px;
+        border-radius: 0 4px 4px 0;
+    }
+
+    /* ── Race Row ── */
+    .fs-row {
+        display: flex;
+        align-items: center;
+        background-color: #1e1e35;
+        border-bottom: 1px solid #2a2a45;
+        padding: 10px 14px;
+        transition: background 0.15s ease;
+        cursor: pointer;
+        font-size: 0.88rem;
+    }
+
+    .fs-row:hover {
+        background-color: #26264a;
+    }
+
+    .fs-row-time {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #ff9944;
+        min-width: 70px;
+    }
+
+    .fs-row-name {
+        flex: 1;
+        font-weight: 600;
+        color: #f0f0f0;
+        padding-left: 10px;
+    }
+
+    .fs-row-club {
+        color: #8888aa;
+        font-size: 0.8rem;
+        min-width: 80px;
+        text-align: center;
+    }
+
+    .fs-row-route {
+        color: #aaaacc;
+        font-size: 0.8rem;
+        min-width: 160px;
+        text-align: center;
+    }
+
+    .fs-row-miles {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #66ccff;
+        min-width: 60px;
+        text-align: right;
+    }
+
+    .fs-miles-label {
+        font-size: 0.7rem;
+        color: #556677;
+        font-weight: 400;
+    }
+
+    /* ── Metric Cards ── */
+    .fs-metric-card {
+        background: linear-gradient(135deg, #1e1e35, #252548);
+        border: 1px solid #2e2e55;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .fs-metric-value {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: #ff6600;
+        line-height: 1;
+    }
+
+    .fs-metric-label {
+        font-size: 0.75rem;
+        color: #8888aa;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 4px;
+    }
+
+    /* ── Sidebar ── */
+    section[data-testid="stSidebar"] {
+        background-color: #12121f !important;
+        border-right: 1px solid #2a2a45;
+    }
+
+    section[data-testid="stSidebar"] p {
+        color: #aaaacc !important;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+    
+    /* ── Customizing the Radio Buttons to look like a Menu ── */
+    .stRadio label {
+        cursor: pointer !important;
+        font-size: 1.05rem !important;
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
+    }
+    .stRadio > div {
+        gap: 8px;
+    }
+
+    /* ── Streamlit widget overrides ── */
+    .stTextInput > div > div > input {
+        background-color: #252540 !important;
+        border: 1px solid #3a3a60 !important;
+        color: #e0e0e0 !important;
+    }
+
+    /* ── Button ── */
+    .stButton > button {
+        background: linear-gradient(90deg, #ff6600, #ff8800) !important;
+        color: #fff !important;
+        font-family: 'Barlow Condensed', sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 0.9rem !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase !important;
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 10px 20px !important;
+        width: 100% !important;
+        transition: opacity 0.2s !important;
+    }
+
+    .stButton > button:hover {
+        opacity: 0.85 !important;
+    }
+
+    /* ── Footer ── */
+    .fs-footer {
+        margin-top: 30px;
+        padding: 10px 0;
+        border-top: 1px solid #2a2a45;
+        font-size: 0.75rem;
+        color: #555577;
+        text-align: center;
+        letter-spacing: 0.8px;
+    }
+
+    /* Hide Streamlit branding */
+    #MainMenu, footer, header { visibility: hidden; }
     </style>
+""", unsafe_allow_html=True)
+
+
+# 3. Mock Data
+def get_mock_data():
+    data = [
+        {"Ημερομηνία": "15/05/2026", "Αγώνας": "Ράλλυ Αιγαίου", "Όμιλος": "ΠΟΙΑΘ", "Περιφέρεια": "Αττική",       "Διαδρομή": "Φάληρο → Πάτμος",    "Μίλια": "150"},
+        {"Ημερομηνία": "20/06/2026", "Αγώνας": "Κύπελλο Ευρίπου",  "Όμιλος": "ΝΟΧ",  "Περιφέρεια": "Εύβοια",       "Διαδρομή": "Χαλκίδα → Ερέτρια",   "Μίλια": "25"},
+        {"Ημερομηνία": "05/07/2026", "Αγώνας": "North Aegean Cup",  "Όμιλος": "ΝΟΘ",  "Περιφέρεια": "Θεσσαλονίκη", "Διαδρομή": "Θερμαϊκός",            "Μίλια": "40"},
+        {"Ημερομηνία": "12/08/2026", "Αγώνας": "Ionian Regatta",    "Όμιλος": "ΝΟΙ",  "Περιφέρεια": "Ιόνιο",       "Διαδρομή": "Κέρκυρα → Παξοί",     "Μίλια": "35"},
+        {"Ημερομηνία": "15/09/2026", "Αγώνας": "Κύπελλο Σαρωνικού","Όμιλος": "ΝΟΕ",  "Περιφέρεια": "Αττική",       "Διαδρομή": "Φάληρο → Αίγινα",     "Μίλια": "18"},
+    ]
+    return pd.DataFrame(data)
+
+df = get_mock_data()
+
+# --- Υπολογισμοί για το μενού (Πόσοι αγώνες ανά Περιφέρεια) ---
+region_counts = df["Περιφέρεια"].value_counts().to_dict()
+total_races = len(df)
+region_options = ["Όλες"] + list(df["Περιφέρεια"].unique())
+
+def format_region(option):
+    """Αυτή η συνάρτηση προσθέτει το εικονίδιο και τον αριθμό δίπλα σε κάθε επιλογή"""
+    if option == "Όλες":
+        return f"📍 Όλες ({total_races})"
+    else:
+        return f"⚓ {option} ({region_counts.get(option, 0)})"
+
+
+# ── Sidebar ──────────────────────────────────────────────
+st.sidebar.markdown("## ⛵ SAILING CALENDAR")
+st.sidebar.markdown("---")
+
+# Το νέο μενού με Radio Buttons
+selected_region = st.sidebar.radio(
+    "ΠΕΡΙΦΕΡΕΙΕΣ",
+    options=region_options,
+    format_func=format_region
+)
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+search_term = st.sidebar.text_input("Αναζήτηση αγώνα")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    "<div style='font-size:0.7rem;color:#555577;text-align:center;'>ΠΛΗΠΡΟ · Ομαδική Εργασία<br>Development Mode</div>",
+    unsafe_allow_html=True
+)
+
+# ── Filters ──────────────────────────────────────────────
+df_filtered = df.copy()
+if selected_region != "Όλες":
+    df_filtered = df_filtered[df_filtered["Περιφέρεια"] == selected_region]
+if search_term:
+    df_filtered = df_filtered[df_filtered["Αγώνας"].str.contains(search_term, case=False, na=False)]
+
+# ── Header ───────────────────────────────────────────────
+st.markdown("""
+    <div class="fs-header">
+        <span style="font-size:1.5rem">⛵</span>
+        <h1>Sailing Calendar 2026</h1>
+        <span class="fs-badge">Test Mode</span>
+    </div>
+""", unsafe_allow_html=True)
+
+# ── Metrics ──────────────────────────────────────────────
+c1, c2, c3, c4 = st.columns(4)
+regions = df_filtered["Περιφέρεια"].nunique()
+total_miles = df_filtered["Μίλια"].astype(int).sum()
+clubs = df_filtered["Όμιλος"].nunique()
+
+with c1:
+    st.markdown(f"""
+        <div class="fs-metric-card">
+            <div class="fs-metric-value">{len(df_filtered)}</div>
+            <div class="fs-metric-label">Αγώνες</div>
+        </div>""", unsafe_allow_html=True)
+with c2:
+    st.markdown(f"""
+        <div class="fs-metric-card">
+            <div class="fs-metric-value">{regions}</div>
+            <div class="fs-metric-label">Περιφέρειες</div>
+        </div>""", unsafe_allow_html=True)
+with c3:
+    st.markdown(f"""
+        <div class="fs-metric-card">
+            <div class="fs-metric-value">{clubs}</div>
+            <div class="fs-metric-label">Όμιλοι</div>
+        </div>""", unsafe_allow_html=True)
+with c4:
+    st.markdown(f"""
+        <div class="fs-metric-card">
+            <div class="fs-metric-value">{total_miles}</div>
+            <div class="fs-metric-label">Σύνολο Μιλίων</div>
+        </div>""", unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ── Race Table (Flashscore-style rows) ────────────────────
+grouped = df_filtered.groupby("Περιφέρεια")
+
+if df_filtered.empty:
+    st.markdown("""
+        <div style="text-align:center; padding:40px; color:#555577; font-size:0.9rem; letter-spacing:1px;">
+            ⚓ ΔΕΝ ΒΡΕΘΗΚΑΝ ΑΓΩΝΕΣ
+        </div>
     """, unsafe_allow_html=True)
-
-@st.cache_data(ttl=600)
-def get_data():
-    # Το ζωντανό link για το τρέχον έτος (2026)
-    url = "https://www.offshore.org.gr/index.php?mx=Race_Schedule_2026&x=Program.xsl"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'}
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code != 200:
-            return pd.DataFrame()
-            
-        soup = BeautifulSoup(response.content, 'xml')
-        races = []
-        for row in soup.find_all('ROW'):
-            races.append({
-                'Ημερομηνία': row.find('FRDATE').text if row.find('FRDATE') else '-',
-                'Αγώνας': row.find('REGATTA').text if row.find('REGATTA') else '-',
-                'Όμιλος': row.find('CLUB').text if row.find('CLUB') else '-',
-                'Περιφέρεια': row.find('DISTRICT').text if row.find('DISTRICT') else 'Άγνωστη', # Νέο πεδίο!
-                'Διαδρομή': row.find('COURSE').text if row.find('COURSE') else '-',
-                'Μίλια': row.find('DISTANCE').text if row.find('DISTANCE') else '-'
-            })
-        return pd.DataFrame(races)
-    except:
-        return pd.DataFrame()
-
-# --- Main App ---
-st.title("⛵ Sailing Calendar Pro")
-st.write("Επίσημο Ημερολόγιο Αγώνων ΕΑΘ/ΕΙΟ (2026)")
-st.write("---")
-
-df = get_data()
-
-if not df.empty:
-    # --- Sidebar: Φίλτρα ---
-    st.sidebar.header("🔍 Φίλτρα")
-    
-    # 1. Φίλτρο Περιφέρειας (Βάσει Εκφώνησης)
-    regions = ["Όλες"] + sorted(df['Περιφέρεια'].unique().tolist())
-    selected_region = st.sidebar.selectbox("Επιλογή Περιφέρειας:", regions)
-    
-    # 2. Αναζήτηση Κειμένου
-    search = st.sidebar.text_input("Αναζήτηση (Αγώνας/Όμιλος):")
-    
-    # Εφαρμογή Φίλτρων
-    df_display = df.copy()
-    if selected_region != "Όλες":
-        df_display = df_display[df_display['Περιφέρεια'] == selected_region]
-        
-    if search:
-        df_display = df_display[df_display['Αγώνας'].str.contains(search, case=False) | df_display['Όμιλος'].str.contains(search, case=False)]
-
-    # --- Εμφάνιση Πίνακα ---
-    st.subheader(f"📅 Βρέθηκαν {len(df_display)} Αγώνες")
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
-
-    # --- iCalendar Logic ---
-    cal = Calendar()
-    for _, r in df_display.iterrows():
-        if r['Ημερομηνία'] != '-':
-            try:
-                event = Event()
-                event.add('summary', r['Αγώνας'])
-                event.add('description', f"Όμιλος: {r['Όμιλος']}\nΠεριφέρεια: {r['Περιφέρεια']}\nΔιαδρομή: {r['Διαδρομή']}")
-                
-                # Εδώ πλέον βάζουμε το 2026!
-                dt = datetime.strptime(f"{r['Ημερομηνία']}/2026", "%d/%m/%Y")
-                event.add('dtstart', dt)
-                cal.add_component(event)
-            except: continue
-
-    # --- Κουμπί Εξαγωγής ---
-    st.download_button(
-        label="📥 Λήψη Ημερολογίου (.ics)",
-        data=cal.to_ical(),
-        file_name=f"sailing_calendar_{selected_region if selected_region != 'Όλες' else 'All'}.ics",
-        mime="text/calendar",
-        help="Κατεβάστε το αρχείο για να το εισάγετε σε Google Calendar ή Outlook."
-    )
 else:
-    st.error("❌ Δεν βρέθηκαν δεδομένα. Η Ομοσπονδία ίσως να μην έχει αναρτήσει το ημερολόγιο ή η σύνδεση απέτυχε.")
+    for region, group in grouped:
+        st.markdown(f"""
+            <div class="fs-section-header">
+                🌊 &nbsp; ΕΛΛΑΔΑ · {region.upper()}
+            </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+            <div class="fs-row" style="font-size:0.72rem; color:#555577; text-transform:uppercase; letter-spacing:0.8px; padding:6px 14px; background:#14142a; cursor:default;">
+                <span style="min-width:70px;">Ημ/νία</span>
+                <span style="flex:1; padding-left:10px;">Αγώνας</span>
+                <span style="min-width:80px; text-align:center;">Όμιλος</span>
+                <span style="min-width:160px; text-align:center;">Διαδρομή</span>
+                <span style="min-width:60px; text-align:right;">Μίλια</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+        for _, row in group.iterrows():
+            st.markdown(f"""
+                <div class="fs-row">
+                    <span class="fs-row-time">{row['Ημερομηνία']}</span>
+                    <span class="fs-row-name">{row['Αγώνας']}</span>
+                    <span class="fs-row-club">{row['Όμιλος']}</span>
+                    <span class="fs-row-route">{row['Διαδρομή']}</span>
+                    <span class="fs-row-miles">{row['Μίλια']} <span class="fs-miles-label">nm</span></span>
+                </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<div style='margin-bottom:16px;'></div>", unsafe_allow_html=True)
+
+# ── Export Button ─────────────────────────────────────────
+st.markdown("<br>", unsafe_allow_html=True)
+col_btn, col_empty = st.columns([1, 3])
+with col_btn:
+    if st.button("⬇ ΕΞΑΓΩΓΗ .ICS"):
+        st.success("✅ Το αρχείο .ics δημιουργήθηκε επιτυχώς (Test Mode)")
+
+# ── Footer ────────────────────────────────────────────────
+st.markdown("""
+    <div class="fs-footer">
+        ΠΛΗΠΡΟ · ΟΜΑΔΙΚΗ ΕΡΓΑΣΙΑ · DEVELOPMENT MODE · 2026
+    </div>
+""", unsafe_allow_html=True)

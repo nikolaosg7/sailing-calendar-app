@@ -2,70 +2,66 @@ import requests
 from bs4 import BeautifulSoup
 from icalendar import Calendar, Event
 from datetime import datetime
+import pandas as pd
 
-def scrape_and_export_xml():
-    # Το link που έχει ΠΑΝΤΑ τα δεδομένα σε δομημένη μορφή XML
-    url = "https://offshore.org.gr/index.php?mx=Race_Schedule_2022&x=Program.xsl"
+def get_sailing_events():
+    """Κατεβάζει τα δεδομένα και τα επιστρέφει ως Pandas DataFrame για το Streamlit"""
+    url = "https://offshore.org.gr/index.php?mx=Race_Schedule_2026&x=Program.xsl"
     
-    print("🌍 Γίνεται λήψη δεδομένων από το XML της Ομοσπονδίας...")
-    response = requests.get(url)
-    
-    if response.status_code != 200:
-        print(f"❌ Σφάλμα σύνδεσης: {response.status_code}")
-        return
+    try:
+        response = requests.get(url)
+        # Αν υπάρξει πρόβλημα, επιστρέφουμε ένα άδειο DataFrame
+        if response.status_code != 200:
+            return pd.DataFrame(columns=["Ημερομηνία", "Αγώνας", "Όμιλος", "Περιφέρεια", "Διαδρομή", "Μίλια"])
+            
+        soup = BeautifulSoup(response.content, 'xml')
+        races = soup.find_all('ROW')
         
-    # Διαβάζουμε το XML
-    soup = BeautifulSoup(response.content, 'xml')
-    races = soup.find_all('ROW') # Στο XML κάθε αγώνας είναι μέσα σε ένα tag <ROW>
-    
-    if not races:
-        print("⚠️ Η σελίδα κατέβηκε, αλλά δεν βρέθηκαν δεδομένα αγώνων.")
-        return
+        data = []
+        for row in races:
+            name = row.find('REGATTA').text if row.find('REGATTA') else 'Άγνωστος Αγώνας'
+            start_date = row.find('FRDATE').text if row.find('FRDATE') else '-'
+            club = row.find('CLUB').text if row.find('CLUB') else '-'
+            course = row.find('COURSE').text if row.find('COURSE') else '-'
+            
+            # Προσθήκη χρονιάς (2026)
+            if start_date != "-":
+                full_date_str = f"{start_date}/2026" 
+            else:
+                full_date_str = "-"
+
+            data.append({
+                "Ημερομηνία": full_date_str,
+                "Αγώνας": name,
+                "Όμιλος": club,
+                "Περιφέρεια": "Πανελλαδικά",  # Σταθερό κείμενο για το UI, αφού δεν υπάρχει στο XML
+                "Διαδρομή": course,
+                "Μίλια": "0"                  # Σταθερό κείμενο για το UI
+            })
+            
+        return pd.DataFrame(data, columns=["Ημερομηνία", "Αγώνας", "Όμιλος", "Περιφέρεια", "Διαδρομή", "Μίλια"])
         
-    print(f"✅ Βρέθηκαν {len(races)} αγώνες! Ξεκινάει η δημιουργία του Ημερολογίου...\n")
-    print("-" * 40)
-    
-    # Προετοιμασία του iCalendar
+    except Exception as e:
+        print(f"Σφάλμα κατά το scraping: {e}")
+        return pd.DataFrame(columns=["Ημερομηνία", "Αγώνας", "Όμιλος", "Περιφέρεια", "Διαδρομή", "Μίλια"])
+
+
+def create_ics_file(df):
+    """Παίρνει το DataFrame και επιστρέφει το αρχείο .ics έτοιμο για κατέβασμα"""
     cal = Calendar()
     cal.add('prodid', '-//Εργασία ΕΑΠ - Ημερολόγιο Ιστιοπλοΐας//')
     cal.add('version', '2.0')
     
-    for row in races:
-        # Τραβάμε τα στοιχεία (αν δεν υπάρχει κάτι, βάζουμε παύλα)
-        name = row.find('REGATTA').text if row.find('REGATTA') else 'Άγνωστος Αγώνας'
-        start_date = row.find('FRDATE').text if row.find('FRDATE') else ''
-        club = row.find('CLUB').text if row.find('CLUB') else '-'
-        course = row.find('COURSE').text if row.find('COURSE') else '-'
-        
-        # Τυπώνουμε στην οθόνη για να βλέπουμε τι γίνεται
-        print(f"⛵ {start_date:<6} | {name} ({club})")
-        
-        # Προσθήκη στο iCalendar
-        if start_date and start_date != "-":
+    for _, row in df.iterrows():
+        if row['Ημερομηνία'] != "-":
             try:
-                # Μετατρέπουμε το "14/05" σε "14/05/2022" για να το καταλάβει το ημερολόγιο
-                full_date_str = f"{start_date}/2022" 
-                dt = datetime.strptime(full_date_str, "%d/%m/%Y")
-                
+                dt = datetime.strptime(row['Ημερομηνία'], "%d/%m/%Y")
                 event = Event()
-                event.add('summary', name) # Τίτλος στο ημερολόγιο
-                event.add('description', f"Όμιλος: {club}\nΔιαδρομή: {course}") # Περιγραφή
-                event.add('dtstart', dt) # Ημερομηνία
-                
+                event.add('summary', row['Αγώνας'])
+                event.add('description', f"Όμιλος: {row['Όμιλος']}\nΔιαδρομή: {row['Διαδρομή']}")
+                event.add('dtstart', dt.date()) # Χρησιμοποιούμε μόνο την ημερομηνία
                 cal.add_component(event)
-            except Exception as e:
-                # Αν η ημερομηνία έχει περίεργη μορφή, απλά την προσπερνάμε σιωπηλά
+            except Exception:
                 pass
-
-    print("-" * 40)
-    
-    # Αποθήκευση του αρχείου
-    filename = "sailing_calendar.ics"
-    with open(filename, 'wb') as f:
-        f.write(cal.to_ical())
-        
-    print(f"\n💾 ΤΕΛΟΣ! Το αρχείο '{filename}' δημιουργήθηκε επιτυχώς στον φάκελό σου!")
-
-# Εκτέλεση
-if __name__ == "__main__":
-    scrape_and_export_xml()
+                
+    return cal.to_ical()
