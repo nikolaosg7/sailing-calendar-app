@@ -192,12 +192,19 @@ st.markdown("""
     #MainMenu, footer { visibility: hidden !important; }
     header { background: transparent !important; }
 
+   /* ==================================================
+       ΜΟΝΙΜΑ ΑΝΟΙΧΤΟ SIDEBAR (Αφαίρεση κουμπιού κλεισίματος)
+       ================================================== */
+    
+    /* Κρύβουμε το κουμπί "X" που κλείνει το μενού */
+    [data-testid="stSidebarCollapseButton"] {
+        display: none !important;
+    }
+    
+    /* Για καλό και για κακό, κρύβουμε και το κουμπί ανοίγματος
+       σε περίπτωση που η οθόνη μικρύνει πολύ */
     [data-testid="collapsedControl"] {
-        color: #0056b3 !important;
-        background-color: #ffffff !important;
-        border: 1px solid #dee2e6 !important;
-        border-radius: 4px !important;
-        margin-top: 10px !important;
+        display: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -324,7 +331,7 @@ search_term = st.sidebar.text_input(
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    "<div style='font-size:0.85rem;color:#0056b3;text-align:center;font-weight:700;'>ΠΛΗΠΡΟ · Ομαδική Εργασία<br>Έκδοση 1.0</div>",
+    "<div style='font-size:0.85rem;color:#0056b3;text-align:center;font-weight:700;'>ΠΛΗΠΡΟ · Ομαδική Εργασία<br>Έκδοση 1.1</div>",
     unsafe_allow_html=True
 )
 
