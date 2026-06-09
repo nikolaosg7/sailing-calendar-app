@@ -113,52 +113,32 @@ st.markdown("""
     .fs-metric-value { font-family:'Barlow Condensed',sans-serif !important; font-size:2.8rem !important; font-weight:700 !important; color:#0056b3 !important; line-height:1 !important; }
     .fs-metric-label { font-size:0.9rem !important; font-weight:700 !important; color:#495057 !important; text-transform:uppercase !important; letter-spacing:0.5px !important; margin-top:4px !important; }
 
-    /* ══════════════════════════════════════════════
-       SIDEBAR FIX — Γαλάζιο κείμενο, force override
-       ══════════════════════════════════════════════ */
-
-    /* Φόντο sidebar */
-    section[data-testid="stSidebar"],
-    section[data-testid="stSidebar"] > div:first-child {
+    /* SIDEBAR FIX */
+    section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div:first-child {
         background-color: #f0f6ff !important;
         border-right: 2px solid #0056b3 !important;
     }
-
-    /* Όλα τα κείμενα μέσα στο sidebar */
-    section[data-testid="stSidebar"] p,
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] h1,
-    section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3,
-    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label,
     section[data-testid="stSidebar"] div {
         color: #0056b3 !important;
         font-weight: 700 !important;
     }
-
-    /* Radio button labels — πολλαπλοί selectors για να σκεπάσουμε το Streamlit */
-    section[data-testid="stSidebar"] .stRadio label,
-    section[data-testid="stSidebar"] .stRadio label p,
-    section[data-testid="stSidebar"] .stRadio label span,
-    section[data-testid="stSidebar"] [data-baseweb="radio"] label,
-    section[data-testid="stSidebar"] [data-baseweb="radio"] span,
-    section[data-testid="stSidebar"] [role="radiogroup"] label,
+    section[data-testid="stSidebar"] .stRadio label, section[data-testid="stSidebar"] .stRadio label p,
+    section[data-testid="stSidebar"] .stRadio label span, section[data-testid="stSidebar"] [data-baseweb="radio"] label,
+    section[data-testid="stSidebar"] [data-baseweb="radio"] span, section[data-testid="stSidebar"] [role="radiogroup"] label,
     section[data-testid="stSidebar"] [role="radiogroup"] span {
         color: #0056b3 !important;
         font-size: 1.0rem !important;
         font-weight: 700 !important;
     }
-
-    /* Επιλεγμένο radio — πιο έντονο */
     section[data-testid="stSidebar"] [data-baseweb="radio"][aria-checked="true"] span,
     section[data-testid="stSidebar"] [data-baseweb="radio"][aria-checked="true"] label {
         color: #003d80 !important;
         font-weight: 800 !important;
     }
-
-    /* Text input — placeholder και κείμενο */
-    section[data-testid="stSidebar"] .stTextInput input,
-    section[data-testid="stSidebar"] input[type="text"] {
+    section[data-testid="stSidebar"] .stTextInput input, section[data-testid="stSidebar"] input[type="text"] {
         background-color: #ffffff !important;
         border: 2px solid #0056b3 !important;
         color: #0056b3 !important;
@@ -169,17 +149,11 @@ st.markdown("""
         color: #6aabee !important;
         font-weight: 600 !important;
     }
-
-    /* Markdown μέσα στο sidebar */
-    section[data-testid="stSidebar"] .stMarkdown p,
-    section[data-testid="stSidebar"] .stMarkdown h1,
-    section[data-testid="stSidebar"] .stMarkdown h2,
-    section[data-testid="stSidebar"] .stMarkdown h3 {
+    section[data-testid="stSidebar"] .stMarkdown p, section[data-testid="stSidebar"] .stMarkdown h1,
+    section[data-testid="stSidebar"] .stMarkdown h2, section[data-testid="stSidebar"] .stMarkdown h3 {
         color: #0056b3 !important;
         font-weight: 700 !important;
     }
-
-    /* ══════════════════════════════════════════════ */
 
     .stButton > button, .stDownloadButton > button {
         background: #0056b3 !important; color: #ffffff !important;
@@ -192,26 +166,15 @@ st.markdown("""
     #MainMenu, footer { visibility: hidden !important; }
     header { background: transparent !important; }
 
-   /* ==================================================
-       ΜΟΝΙΜΑ ΑΝΟΙΧΤΟ SIDEBAR (Αφαίρεση κουμπιού κλεισίματος)
-       ================================================== */
-    
-    /* Κρύβουμε το κουμπί "X" που κλείνει το μενού */
-    [data-testid="stSidebarCollapseButton"] {
-        display: none !important;
-    }
-    
-    /* Για καλό και για κακό, κρύβουμε και το κουμπί ανοίγματος
-       σε περίπτωση που η οθόνη μικρύνει πολύ */
-    [data-testid="collapsedControl"] {
+    /* FIX: Απόκρυψη κουμπιού sidebar (πιο ασφαλές) */
+    button[kind="header"] {
         display: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-
-# ── XML Parsing ────────────────────────────────────────────
-@st.cache_data(ttl=3600)
+# ── XML Parsing (FIX: πιο ανθεκτικό parsing ημερομηνιών) ──
+@st.cache_data(ttl=86400)  # FIX: 24 ώρες αντί 1 ώρα
 def get_sailing_events():
     url = "https://offshore.org.gr/index.php?mx=Race_Schedule_2026&x=Program.xsl"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
@@ -257,18 +220,22 @@ def get_sailing_events():
         st.error(f"Σφάλμα κατά το scraping: {e}")
         return pd.DataFrame()
 
-
+# FIX: parse_date με έλεγχο μήκους για 8,12 ή περισσότερους χαρακτήρες
 def parse_date(stdate_text):
-    """Μετατρέπει '20260419110000000' → ('19/04/2026', '11:00')"""
-    if stdate_text and len(stdate_text) >= 12:
-        yyyy = stdate_text[0:4]
-        mm   = stdate_text[4:6]
-        dd   = stdate_text[6:8]
-        hh   = stdate_text[8:10]
+    """Μετατρέπει '20260419110000000' → ('19/04/2026', '11:00')
+       και '20260419' → ('19/04/2026', '-')
+    """
+    if not stdate_text or len(stdate_text) < 8:
+        return "-", "-"
+    yyyy = stdate_text[0:4]
+    mm = stdate_text[4:6]
+    dd = stdate_text[6:8]
+    if len(stdate_text) >= 12:
+        hh = stdate_text[8:10]
         mins = stdate_text[10:12]
         return f"{dd}/{mm}/{yyyy}", f"{hh}:{mins}"
-    return "-", "-"
-
+    else:
+        return f"{dd}/{mm}/{yyyy}", "-"
 
 def create_ics_file(df):
     cal = Calendar()
@@ -287,32 +254,34 @@ def create_ics_file(df):
                 event.add('summary', row['Αγώνας'])
                 event.add('description', f"Όμιλος: {row['Όμιλος']}\nΔιαδρομή: {row['Διαδρομή']}\nΑπόσταση: {row['Μίλια']} nm")
                 event.add('dtstart', dt)
+                # FIX: προσθήκη dtend (προαιρετικά) - αν θέλεις ολόκληρη μέρα, μην το βάλεις
+                # Αλλά για ολόημερο event, το icalendar χρειάζεται dtend = dt + 1 ημέρα;
+                # Θα το αφήσω χωρίς dtend, όπως ήταν.
                 cal.add_component(event)
             except Exception:
                 pass
     return cal.to_ical()
 
-
-# ── Φόρτωση Δεδομένων ─────────────────────────────────────
+# ── Φόρτωση Δεδομένων ──
 with st.spinner('Γίνεται άντληση πραγματικών δεδομένων...'):
     df = get_sailing_events()
 
 if not df.empty:
-    region_counts  = df["Περιφέρεια"].value_counts().to_dict()
-    total_races    = len(df)
+    region_counts = df["Περιφέρεια"].value_counts().to_dict()
+    total_races = len(df)
     region_options = ["Όλες"] + sorted(df["Περιφέρεια"].unique().tolist())
 else:
-    region_counts  = {}
-    total_races    = 0
+    region_counts = {}
+    total_races = 0
     region_options = ["Όλες"]
 
 def format_region(option):
     if option == "Όλες":
         return f"📍 Όλες ({total_races})"
+    # FIX: αν region_counts δεν έχει το κλειδί, δίνει 0
     return f"⚓ {option} ({region_counts.get(option, 0)})"
 
-
-# ── Sidebar ───────────────────────────────────────────────
+# ── Sidebar ──
 st.sidebar.markdown("## ⛵ SAILING CALENDAR")
 st.sidebar.markdown("---")
 
@@ -331,11 +300,11 @@ search_term = st.sidebar.text_input(
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    "<div style='font-size:0.85rem;color:#0056b3;text-align:center;font-weight:700;'>ΠΛΗΠΡΟ · Ομαδική Εργασία<br>Έκδοση 1.1</div>",
+    "<div style='font-size:0.85rem;color:#0056b3;text-align:center;font-weight:700;'>ΠΛΗΠΡΟ · Ομαδική Εργασία<br>Έκδοση 1.2</div>",
     unsafe_allow_html=True
 )
 
-# ── Filters ───────────────────────────────────────────────
+# ── Filters ──
 df_filtered = df.copy()
 
 if not df_filtered.empty:
@@ -343,10 +312,14 @@ if not df_filtered.empty:
     keep = []
     for _, row in df_filtered.iterrows():
         try:
+            # FIX: αν η ημερομηνία είναι "-" την προσπερνάμε (δεν την κρατάμε)
+            if row['Ημερομηνία'] == "-":
+                keep.append(False)
+                continue
             race_date = datetime.strptime(row['Ημερομηνία'], "%d/%m/%Y").date()
             keep.append(race_date >= current_date)
         except:
-            keep.append(True)
+            keep.append(False)  # FIX: αν αποτύχει, μην το συμπεριλάβεις
     df_filtered = df_filtered[keep]
 
     if selected_region != "Όλες":
@@ -354,7 +327,7 @@ if not df_filtered.empty:
     if search_term:
         df_filtered = df_filtered[df_filtered["Αγώνας"].str.contains(search_term, case=False, na=False)]
 
-# ── Header ────────────────────────────────────────────────
+# ── Header ──
 st.markdown("""
     <div class="fs-header">
         <span style="font-size:2.2rem">⛵</span>
@@ -363,10 +336,13 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ── Metrics ───────────────────────────────────────────────
+# ── Metrics (FIX: safe_int απλοποιημένο) ──
 def safe_int(val):
     try:
-        return int(float(str(val).replace(',', '.')))
+        # Αν είναι string, αφαιρούμε κόμμα και μετατρέπουμε
+        if isinstance(val, str):
+            val = val.replace(',', '.')
+        return int(float(val))
     except:
         return 0
 
@@ -386,7 +362,7 @@ with c4:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ── Race Table ────────────────────────────────────────────
+# ── Race Table ──
 if df_filtered.empty:
     st.markdown('<div style="text-align:center;padding:40px;color:#495057;font-size:1.1rem;font-weight:700;">⚓ ΔΕΝ ΒΡΕΘΗΚΑΝ ΑΓΩΝΕΣ</div>', unsafe_allow_html=True)
 else:
@@ -415,7 +391,7 @@ else:
             """, unsafe_allow_html=True)
         st.markdown("<div style='margin-bottom:24px;'></div>", unsafe_allow_html=True)
 
-# ── Export ────────────────────────────────────────────────
+# ── Export ──
 st.markdown("<br>", unsafe_allow_html=True)
 col_btn, _ = st.columns([1, 3])
 with col_btn:
