@@ -1,5 +1,18 @@
-streamlit
-pandas
-requests
-beautifulsoup4
-icalendar
+# Sailing Calendar 2026 - Requirements
+# Python 3.14 (Compatibility)
+
+# Βασικές Βιβλιοθήκες Γραφικού Περιβάλλοντος
+streamlit>=1.30.0
+
+# Βιβλιοθήκες Επεξεργασίας και Ανάλυσης Δεδομένων
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Βιβλιοθήκες Δικτύου και Web Scraping
+requests>=2.31.0
+
+# Βιβλιοθήκες Εξαγωγής ICS (iCalendar)
+icalendar>=5.0.0
+
+# Πακετάρισμα & Deployment
+pyinstaller>=6.4.0
